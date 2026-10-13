@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cambodja Reisplan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+[hidden] { display: none !important; }
+body { margin: 0; }
+/* Layout: smalle reiskolom — kop met route-strook, daarna één rij per dag (datumkolom + inhoud), transportdagen krijgen een waterblauwe band. */
+:root {
+  --paper: #F2F5F1;
+  --card: #FFFFFF;
+  --ink: #17302B;
+  --muted: #5B6F68;
+  --line: #D6DED9;
+  --saffron: #D9801A;
+  --saffron-soft: #FBEBD5;
+  --saffron-ink: #8F520A;
+  --water: #276F7A;
+  --water-soft: #E1EFF1;
+  --danger: #B3402A;
+  --f-display: "Young Serif", Georgia, "Times New Roman", serif;
+  --f-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0E1917; --card: #152320; --ink: #E5EEEA; --muted: #95A9A2; --line: #26392F;
+    --saffron: #F0A245; --saffron-soft: #3A2A14; --saffron-ink: #F6C27F;
+    --water: #6BBAC5; --water-soft: #17333A; --danger: #EE8670; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0E1917; --card: #152320; --ink: #E5EEEA; --muted: #95A9A2; --line: #26392F;
+  --saffron: #F0A245; --saffron-soft: #3A2A14; --saffron-ink: #F6C27F;
+  --water: #6BBAC5; --water-soft: #17333A; --danger: #EE8670; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 860px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px; }
+
+header { display: grid; gap: 18px; margin-bottom: 36px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--saffron-ink); }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(40px, 8vw, 64px); line-height: 1; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; font-size: 16px; }
+
+.route { overflow-x: auto; padding-bottom: 4px; }
+.route ol { list-style: none; margin: 0; padding: 0; display: flex; align-items: stretch; gap: 0; min-width: max-content; }
+.route li { display: flex; align-items: center; }
+.stop { display: grid; gap: 2px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+.stop b { font-weight: 600; font-size: 14px; white-space: nowrap; }
+.stop span { font-family: var(--f-mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+.hop { width: 28px; height: 2px; background: repeating-linear-gradient(90deg, var(--water) 0 5px, transparent 5px 9px); flex: none; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.status { font-size: 13px; color: var(--muted); }
+
+button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); padding: 7px 12px; font-size: 14px; font-weight: 500; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--saffron); outline-offset: 2px; }
+button.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+button.ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 6px 8px; }
+button.ghost:hover { color: var(--ink); border-color: var(--line); }
+button.danger { color: var(--danger); }
+
+.days { display: grid; gap: 0; border-top: 1px solid var(--line); }
+.day { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 18px; padding-block: 22px; border-bottom: 1px solid var(--line); }
+.date { display: grid; align-content: start; gap: 2px; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.date .dow { font-size: 11px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
+.date .num { font-size: 30px; font-weight: 600; line-height: 1; }
+.date .mon { font-size: 11px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
+.date .dn { margin-top: 8px; font-size: 11px; color: var(--saffron-ink); }
+
+.body { display: grid; gap: 12px; min-width: 0; }
+.head { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; }
+.place { font-family: var(--f-display); font-weight: 400; font-size: 24px; line-height: 1.15; margin: 0; text-wrap: balance; }
+.rows { display: grid; gap: 10px; }
+.row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: start; }
+.label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding-top: 3px; font-weight: 600; }
+.val { min-width: 0; overflow-wrap: anywhere; }
+.val ul { margin: 0; padding-left: 18px; }
+.val li::marker { color: var(--saffron); }
+.empty { color: var(--muted); font-style: italic; }
+.stay { display: inline-block; background: var(--saffron-soft); color: var(--saffron-ink); padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+.transport { display: flex; gap: 10px; align-items: flex-start; background: var(--water-soft); color: var(--ink); border-radius: 8px; padding: 9px 12px; }
+.transport svg { flex: none; color: var(--water); margin-top: 2px; }
+.notes { color: var(--muted); font-size: 14px; white-space: pre-wrap; }
+
+form.edit { display: grid; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.field small { font-size: 12px; color: var(--muted); }
+input, textarea { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; }
+textarea { min-height: 76px; resize: vertical; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+.actions div { display: flex; gap: 8px; flex-wrap: wrap; }
+.err { color: var(--danger); font-size: 13px; }
+
+.notice { padding: 24px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); text-align: center; }
+.adder { margin-top: 18px; }
+
+@media (max-width: 560px) {
+  .day { grid-template-columns: 52px minmax(0, 1fr); gap: 12px; }
+  .date .num { font-size: 24px; }
+  .row { grid-template-columns: 1fr; gap: 2px; }
+  .place { font-size: 21px; }
+}
+.stayline { display: grid; gap: 4px; justify-items: start; }
+.addr { display: inline-flex; gap: 6px; align-items: flex-start; color: var(--water); font-size: 14px; text-decoration: none; }
+.addr:hover { text-decoration: underline; }
+.addr svg { flex: none; margin-top: 2px; }
+.banner { display: grid; gap: 4px; background: var(--saffron-soft); color: var(--saffron-ink); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 14px; }
+.editbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.codeform { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.codeform input { width: 180px; padding: 6px 10px; }
+.live { display: inline-flex; gap: 6px; align-items: center; }
+.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--water); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Reisplan · November 2026</div>
+    <h1>Cambodja</h1>
+    <p class="sub" id="sub">Van Siem Reap naar Phnom Penh, dag per dag.</p>
+    <nav class="route" aria-label="Route"><ol id="route"></ol></nav>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <div class="toolbar">
+    <div class="legend">
+      <span><i style="background:var(--saffron-soft);border:1px solid var(--saffron)"></i>Verblijf</span>
+      <span><i style="background:var(--water-soft);border:1px solid var(--water)"></i>Transport</span>
+    </div>
+    <div class="editbar">
+      <span class="status" id="status"></span>
+      <form class="codeform" id="codeForm" hidden>
+        <label class="status" for="codeInput">Bewerkcode</label>
+        <input id="codeInput" type="password" autocomplete="off" required>
+        <button class="primary" type="submit">Ontgrendel</button>
+        <button type="button" id="codeCancel">Annuleren</button>
+      </form>
+      <button id="modeBtn" type="button">Bewerken</button>
+    </div>
+  </div>
+
+  <section class="days" id="days" aria-live="polite"></section>
+  <div class="adder" id="adder" hidden><button class="primary" id="addBtn" type="button">+ Dag toevoegen</button></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js"></script>
+<script>
+/* ============================================================
+   INSTELLINGEN — vul hier je Supabase-gegevens in
+   (Supabase → Project Settings → API).
+   De anon/publishable key mag publiek staan: bezoekers kunnen
+   alleen lezen, schrijven kan enkel met de bewerkcode.
+   ============================================================ */
+const SUPABASE_URL = "https://vzvxdycfbvwsjyhjerpu.supabase.co";
+const SUPABASE_KEY = "sb_publishable_M-ur5RpJ0gXWWCckZi20UA_ckVyIN-R";
+
+/* Reservekopie: wordt alleen getoond zolang Supabase nog niet gekoppeld is. */
+const FALLBACK = [
+  {
+    "date": "2026-11-01",
+    "place": "Siem Reap",
+    "stay": "",
+    "address": "",
+    "activities": "Toekomen\nRelaxen",
+    "transport": "Aankomst in Siem Reap",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-02",
+    "place": "Siem Reap",
+    "stay": "",
+    "address": "",
+    "activities": "Tempels bezoeken",
+    "transport": "",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-03",
+    "place": "Siem Reap",
+    "stay": "",
+    "address": "",
+    "activities": "Voormiddag: meer\nNamiddag: naar Battambang",
+    "transport": "Siem Reap → Battambang (namiddag)",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-04",
+    "place": "Battambang",
+    "stay": "",
+    "address": "",
+    "activities": "Pick-up tuk-tuk\nStad verkennen",
+    "transport": "",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-05",
+    "place": "Tuk-tuk tour",
+    "stay": "",
+    "address": "",
+    "activities": "Tuk-tuk tour + wandeling",
+    "transport": "",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-06",
+    "place": "Tuk-tuk tour",
+    "stay": "",
+    "address": "",
+    "activities": "Tuk-tuk tour + wandeling",
+    "transport": "",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-07",
+    "place": "Tuk-tuk tour",
+    "stay": "",
+    "address": "",
+    "activities": "Tuk-tuk tour + wandeling",
+    "transport": "",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-08",
+    "place": "Sihanoukville",
+    "stay": "",
+    "address": "",
+    "activities": "",
+    "transport": "Sihanoukville → Koh Rong",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-09",
+    "place": "Koh Rong",
+    "stay": "",
+    "address": "",
+    "activities": "Chillen\nSnorkelen\nDuiken",
+    "transport": "",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-10",
+    "place": "Koh Rong",
+    "stay": "",
+    "address": "",
+    "activities": "Chillen\nSnorkelen\nDuiken",
+    "transport": "",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-11",
+    "place": "Koh Rong",
+    "stay": "",
+    "address": "",
+    "activities": "",
+    "transport": "Koh Rong → Kampot",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-12",
+    "place": "Kampot",
+    "stay": "",
+    "address": "",
+    "activities": "Brommertour naar Kep",
+    "transport": "",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-13",
+    "place": "Kampot",
+    "stay": "",
+    "address": "",
+    "activities": "Vrij in te vullen",
+    "transport": "Kampot → Phnom Penh ('s avonds)",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-14",
+    "place": "Phnom Penh",
+    "stay": "",
+    "address": "",
+    "activities": "Killing Fields\nStad verkennen",
+    "transport": "",
+    "notes": ""
+  },
+  {
+    "date": "2026-11-15",
+    "place": "Phnom Penh",
+    "stay": "",
+    "address": "",
+    "activities": "Chilldag",
+    "transport": "Vlucht naar huis ('s avonds)",
+    "notes": ""
+  }
+];
+
+const DOW = ["zo","ma","di","wo","do","vr","za"];
+const MON = ["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
+const CODE_KEY = "cambodja-bewerkcode";
+const arrow = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
+const pin = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+
+const $ = id => document.getElementById(id);
+const $days = $("days");
+let sb = null, days = [], code = null, editMode = false, editing = null, confirmDel = null, busy = false;
+try { code = localStorage.getItem(CODE_KEY); } catch {}
+
+function sortDays(a) { return a.slice().sort((x, y) => x.date.localeCompare(y.date)); }
+function esc(s) { return String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])); }
+function parse(d) { const [y,m,dd] = d.split("-").map(Number); return new Date(y, m-1, dd); }
+function lines(t) { return String(t || "").split("\n").map(s => s.trim()).filter(Boolean); }
+function mapsUrl(d) {
+  const a = (d.address || "").trim();
+  if (/^https?:\/\//i.test(a)) return a;
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent([d.stay, a].filter(Boolean).join(", "));
+}
+function addrLabel(a) { return /^https?:\/\//i.test(a) ? "Open in Google Maps" : a; }
+function banner(msg) { const b = $("banner"); b.innerHTML = msg || ""; b.hidden = !msg; }
+function status(msg, live) { const s = $("status"); s.textContent = msg || ""; s.className = "status" + (live ? " live" : ""); }
+
+function renderRoute() {
+  const stops = [];
+  for (const d of days) {
+    const p = (d.place || "").trim() || "Onbekend";
+    const last = stops[stops.length - 1];
+    if (last && last.place === p) last.n++; else stops.push({ place: p, n: 1 });
+  }
+  $("route").innerHTML = stops.map((s, i) =>
+    (i ? '<li><span class="hop" aria-hidden="true"></span></li>' : "") +
+    `<li><div class="stop"><b>${esc(s.place)}</b><span>${s.n} ${s.n === 1 ? "dag" : "dagen"}</span></div></li>`).join("");
+  if (days.length) {
+    const a = parse(days[0].date), b = parse(days[days.length-1].date);
+    $("sub").textContent = `${a.getDate()} ${MON[a.getMonth()]} – ${b.getDate()} ${MON[b.getMonth()]} · ${days.length} dagen · ${stops.length} stops`;
+  }
+}
+
+function stayHtml(d) {
+  if (!d.stay && !d.address) return '<span class="empty">Nog geen verblijf</span>';
+  return `<div class="stayline">
+    ${d.stay ? `<span class="stay">${esc(d.stay)}</span>` : ""}
+    ${d.address ? `<a class="addr" href="${esc(mapsUrl(d))}" target="_blank" rel="noopener">${pin}<span>${esc(addrLabel(d.address))}</span></a>` : ""}
+  </div>`;
+}
+
+function viewDay(d, i) {
+  const dt = parse(d.date), acts = lines(d.activities);
+  return `<article class="day" id="d-${esc(d.date)}">
+    <div class="date">
+      <span class="dow">${DOW[dt.getDay()]}</span>
+      <span class="num">${String(dt.getDate()).padStart(2,"0")}</span>
+      <span class="mon">${MON[dt.getMonth()]}</span>
+      <span class="dn">dag ${i+1}</span>
+    </div>
+    <div class="body">
+      ${editing === d.date ? formHtml(d) : `
+      <div class="head">
+        <h2 class="place">${esc(d.place || "Plaats nog in te vullen")}</h2>
+        ${editMode ? `<button class="ghost" type="button" data-edit="${esc(d.date)}">Bewerken</button>` : ""}
+      </div>
+      <div class="rows">
+        <div class="row"><span class="label">Verblijf</span><div class="val">${stayHtml(d)}</div></div>
+        <div class="row"><span class="label">Activiteiten</span><div class="val">${acts.length ? `<ul>${acts.map(a => `<li>${esc(a)}</li>`).join("")}</ul>` : '<span class="empty">Nog niets gepland</span>'}</div></div>
+        ${d.transport ? `<div class="row"><span class="label">Transport</span><div class="val"><div class="transport">${arrow}<span>${esc(d.transport)}</span></div></div></div>` : ""}
+        ${d.notes ? `<div class="row"><span class="label">Notities</span><div class="val notes">${esc(d.notes)}</div></div>` : ""}
+      </div>`}
+    </div>
+  </article>`;
+}
+
+function formHtml(d) {
+  const isNew = !!d.__new, k = isNew ? "new" : d.date;
+  return `<form class="edit" data-form="${esc(k)}">
+    ${isNew ? `<div class="field"><label for="f-date-${k}">Datum</label><input id="f-date-${k}" name="date" type="date" required></div>` : ""}
+    <div class="field"><label for="f-place-${k}">Plaats</label><input id="f-place-${k}" name="place" value="${esc(d.place)}" placeholder="bv. Siem Reap"></div>
+    <div class="field"><label for="f-stay-${k}">Verblijf</label><input id="f-stay-${k}" name="stay" value="${esc(d.stay)}" placeholder="Naam hotel of guesthouse"></div>
+    <div class="field"><label for="f-addr-${k}">Adres verblijf</label><input id="f-addr-${k}" name="address" value="${esc(d.address)}" placeholder="Adres of Google Maps-link"><small>Klikken op het adres opent de locatie in Google Maps.</small></div>
+    <div class="field"><label for="f-acts-${k}">Activiteiten</label><textarea id="f-acts-${k}" name="activities" placeholder="Eén activiteit per regel">${esc(d.activities)}</textarea><small>Eén activiteit per regel.</small></div>
+    <div class="field"><label for="f-tr-${k}">Transport</label><input id="f-tr-${k}" name="transport" value="${esc(d.transport)}" placeholder="Alleen als jullie van plek veranderen, bv. Bus Siem Reap → Battambang, 14:00"></div>
+    <div class="field"><label for="f-notes-${k}">Notities</label><textarea id="f-notes-${k}" name="notes" placeholder="Tips, vertrekuren, …">${esc(d.notes)}</textarea></div>
+    <p class="err" data-err hidden></p>
+    <div class="actions">
+      <div><button class="primary" type="submit">Opslaan</button><button type="button" data-cancel>Annuleren</button></div>
+      ${isNew ? "" : `<button type="button" class="danger" data-del="${esc(d.date)}">${confirmDel === d.date ? "Zeker? Klik nogmaals om te verwijderen" : "Dag verwijderen"}</button>`}
+    </div>
+  </form>`;
+}
+
+function render() {
+  renderRoute();
+  $days.innerHTML = (!days.length && editing !== "new")
+    ? '<div class="notice">Nog geen dagen in het reisplan.</div>'
+    : days.map(viewDay).join("") + (editing === "new"
+      ? `<article class="day"><div class="date"><span class="dow">nieuw</span></div><div class="body">${formHtml({ __new: true })}</div></article>` : "");
+  $("adder").hidden = !editMode || editing === "new";
+  $("modeBtn").textContent = editMode ? "Klaar" : "Bewerken";
+  $("modeBtn").hidden = !sb || !$("codeForm").hidden;
+}
+
+function formErr(f, msg) { const p = f?.querySelector("[data-err]"); if (p) { p.textContent = msg; p.hidden = false; } }
+function errText(e) {
+  const m = String(e?.message || "");
+  if (m.includes("wrong_code")) return "De bewerkcode klopt niet meer. Klik op Klaar en ontgrendel opnieuw.";
+  if (/fetch|network/i.test(m)) return "Geen verbinding. Controleer je internet en probeer opnieuw.";
+  return "Opslaan lukte niet: " + (m || "onbekende fout");
+}
+
+async function load() {
+  const { data, error } = await sb.from("trip_days").select("*").order("date");
+  if (error) { banner("De reisgegevens konden niet geladen worden. Controleer SUPABASE_URL en SUPABASE_KEY in index.html."); return; }
+  days = data.map(r => ({ ...r, date: String(r.date).slice(0, 10) }));
+  if (!editing) render(); else renderRoute();
+}
+
+async function rpc(name, args) {
+  const { error } = await sb.rpc(name, args);
+  if (error) throw error;
+}
+
+$days.addEventListener("click", async (e) => {
+  const t = e.target.closest("button"); if (!t || busy) return;
+  if (t.dataset.edit) { editing = t.dataset.edit; confirmDel = null; render(); $("f-place-" + editing)?.focus(); }
+  else if (t.hasAttribute("data-cancel")) { editing = null; confirmDel = null; render(); }
+  else if (t.dataset.del) {
+    const id = t.dataset.del, f = t.closest("form");
+    if (confirmDel !== id) { confirmDel = id; render(); return; }
+    busy = true;
+    try { await rpc("delete_day", { p_code: code, p_date: id }); editing = null; confirmDel = null; await load(); }
+    catch (err) { formErr(f, errText(err)); }
+    busy = false;
+  }
+});
+
+$days.addEventListener("submit", async (e) => {
+  e.preventDefault(); if (busy) return;
+  const f = e.target, key = f.dataset.form, fd = new FormData(f);
+  const date = key === "new" ? String(fd.get("date") || "") : key;
+  if (!date) return formErr(f, "Kies een datum.");
+  if (key === "new" && days.some(d => d.date === date)) return formErr(f, "Er bestaat al een dag op deze datum. Bewerk die dag in plaats daarvan.");
+  const g = n => String(fd.get(n) || "").trim();
+  const day = { date, place: g("place"), stay: g("stay"), address: g("address"), activities: g("activities"), transport: g("transport"), notes: g("notes") };
+  const btn = f.querySelector('button[type="submit"]');
+  busy = true; btn.disabled = true; btn.textContent = "Opslaan…";
+  try { await rpc("save_day", { p_code: code, p_day: day }); editing = null; confirmDel = null; await load(); }
+  catch (err) { btn.disabled = false; btn.textContent = "Opslaan"; formErr(f, errText(err)); }
+  busy = false;
+});
+
+$("modeBtn").addEventListener("click", async () => {
+  if (editMode) { editMode = false; editing = null; confirmDel = null; render(); return; }
+  if (code) {
+    try { const { data } = await sb.rpc("check_code", { p_code: code }); if (data === true) { editMode = true; render(); return; } } catch {}
+  }
+  $("codeForm").hidden = false; render(); $("codeInput").focus();
+});
+$("codeCancel").addEventListener("click", () => { $("codeForm").hidden = true; render(); });
+$("codeForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const val = $("codeInput").value.trim();
+  const { data, error } = await sb.rpc("check_code", { p_code: val });
+  if (error || data !== true) { status("Die code klopt niet."); return; }
+  code = val; try { localStorage.setItem(CODE_KEY, val); } catch {}
+  $("codeInput").value = ""; $("codeForm").hidden = true; editMode = true;
+  status("Live", true); render();
+});
+$("addBtn").addEventListener("click", () => { editing = "new"; render(); $("f-date-new")?.focus(); });
+
+(async () => {
+  if (!SUPABASE_URL || !SUPABASE_KEY || !window.supabase) {
+    days = sortDays(FALLBACK); render();
+    banner("<b>Nog niet gekoppeld.</b> Vul SUPABASE_URL en SUPABASE_KEY in bovenaan het script in index.html om samen te bewerken. Je ziet nu de reservekopie.");
+    return;
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  $days.innerHTML = '<div class="notice">Reisplan laden…</div>'; status("Laden…");
+  await load();
+  status("Live", true);
+  sb.channel("trip_days")
+    .on("postgres_changes", { event: "*", schema: "public", table: "trip_days" }, () => load())
+    .subscribe();
+})();
+</script>
+</body>
+</html>

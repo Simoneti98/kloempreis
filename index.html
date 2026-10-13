@@ -110,6 +110,24 @@ textarea { min-height: 76px; resize: vertical; }
   .row { grid-template-columns: 1fr; gap: 2px; }
   .place { font-size: 21px; }
 }
+.slots { display: grid; gap: 8px; }
+.slot { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.slot-t { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; font-weight: 600; color: var(--saffron-ink); white-space: nowrap; }
+.slot-t::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--saffron); flex: none; }
+.slot.allday .slot-t { color: var(--muted); }
+.slot.allday .slot-t::before { background: var(--muted); }
+.slot ul { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 2px; }
+.slotgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 560px) { .slotgrid { grid-template-columns: 1fr; } .slot { grid-template-columns: 84px minmax(0, 1fr); } }
+body.exporting #dlBtn, body.exporting #modeBtn, body.exporting .banner, body.exporting .adder, body.exporting .ghost, body.exporting .codeform, body.exporting .status { display: none !important; }
+body.exporting .route { overflow: visible; }
+body.exporting .route ol { flex-wrap: wrap; min-width: 0; row-gap: 8px; }
+body.exporting .wrap { padding-block: 16px; }
+@media print {
+  #dlBtn, #modeBtn, .banner, .adder, .ghost, .codeform, .status { display: none !important; }
+  .route { overflow: visible; } .route ol { flex-wrap: wrap; min-width: 0; row-gap: 8px; }
+  .day { break-inside: avoid; }
+}
 .stayline { display: grid; gap: 4px; justify-items: start; }
 .addr { display: inline-flex; gap: 6px; align-items: flex-start; color: var(--water); font-size: 14px; text-decoration: none; }
 .addr:hover { text-decoration: underline; }
@@ -146,7 +164,7 @@ textarea { min-height: 76px; resize: vertical; }
         <button class="primary" type="submit">Ontgrendel</button>
         <button type="button" id="codeCancel">Annuleren</button>
       </form>
-      <button id="dlBtn" type="button">Download offline versie</button>
+      <button id="dlBtn" type="button">Download als PDF</button>
       <button id="modeBtn" type="button">Bewerken</button>
     </div>
   </div>
@@ -177,6 +195,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "Toekomen\nRelaxen",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "Aankomst in Siem Reap",
     "notes": ""
   },
@@ -186,6 +207,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "Tempels bezoeken",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "",
     "notes": ""
   },
@@ -194,7 +218,10 @@ const FALLBACK = [
     "place": "Siem Reap",
     "stay": "",
     "address": "",
-    "activities": "Voormiddag: meer\nNamiddag: naar Battambang",
+    "activities": "",
+    "morning": "Meer",
+    "afternoon": "Naar Battambang",
+    "evening": "",
     "transport": "Siem Reap → Battambang (namiddag)",
     "notes": ""
   },
@@ -204,6 +231,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "Pick-up tuk-tuk\nStad verkennen",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "",
     "notes": ""
   },
@@ -213,6 +243,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "Tuk-tuk tour + wandeling",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "",
     "notes": ""
   },
@@ -222,6 +255,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "Tuk-tuk tour + wandeling",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "",
     "notes": ""
   },
@@ -231,6 +267,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "Tuk-tuk tour + wandeling",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "",
     "notes": ""
   },
@@ -240,6 +279,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "Sihanoukville → Koh Rong",
     "notes": ""
   },
@@ -249,6 +291,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "Chillen\nSnorkelen\nDuiken",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "",
     "notes": ""
   },
@@ -258,6 +303,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "Chillen\nSnorkelen\nDuiken",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "",
     "notes": ""
   },
@@ -267,6 +315,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "Koh Rong → Kampot",
     "notes": ""
   },
@@ -276,6 +327,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "Brommertour naar Kep",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "",
     "notes": ""
   },
@@ -285,6 +339,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "Vrij in te vullen",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "Kampot → Phnom Penh ('s avonds)",
     "notes": ""
   },
@@ -294,6 +351,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "Killing Fields\nStad verkennen",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "",
     "notes": ""
   },
@@ -303,6 +363,9 @@ const FALLBACK = [
     "stay": "",
     "address": "",
     "activities": "Chilldag",
+    "morning": "",
+    "afternoon": "",
+    "evening": "",
     "transport": "Vlucht naar huis ('s avonds)",
     "notes": ""
   }
@@ -371,8 +434,16 @@ function stayHtml(d) {
   </div>`;
 }
 
+const SLOTS = [["activities", "Hele dag", "allday"], ["morning", "Voormiddag", ""], ["afternoon", "Namiddag", ""], ["evening", "Avond", ""]];
+function slotsHtml(d) {
+  const filled = SLOTS.map(([k, label, cls]) => ({ label, cls, items: lines(d[k]) })).filter(s => s.items.length);
+  if (!filled.length) return '<span class="empty">Nog niets gepland</span>';
+  return `<div class="slots">${filled.map(s =>
+    `<div class="slot ${s.cls}"><span class="slot-t">${s.label}</span><ul>${s.items.map(a => `<li>${esc(a)}</li>`).join("")}</ul></div>`).join("")}</div>`;
+}
+
 function viewDay(d, i) {
-  const dt = parse(d.date), acts = lines(d.activities);
+  const dt = parse(d.date);
   return `<article class="day" id="d-${esc(d.date)}">
     <div class="date">
       <span class="dow">${DOW[dt.getDay()]}</span>
@@ -388,7 +459,7 @@ function viewDay(d, i) {
       </div>
       <div class="rows">
         <div class="row"><span class="label">Verblijf</span><div class="val">${stayHtml(d)}</div></div>
-        <div class="row"><span class="label">Activiteiten</span><div class="val">${acts.length ? `<ul>${acts.map(a => `<li>${esc(a)}</li>`).join("")}</ul>` : '<span class="empty">Nog niets gepland</span>'}</div></div>
+        <div class="row"><span class="label">Activiteiten</span><div class="val">${slotsHtml(d)}</div></div>
         ${d.transport ? `<div class="row"><span class="label">Transport</span><div class="val"><div class="transport">${arrow}<span>${esc(d.transport)}</span></div></div></div>` : ""}
         ${d.notes ? `<div class="row"><span class="label">Notities</span><div class="val notes">${esc(d.notes)}</div></div>` : ""}
       </div>`}
@@ -403,7 +474,12 @@ function formHtml(d) {
     <div class="field"><label for="f-place-${k}">Plaats</label><input id="f-place-${k}" name="place" value="${esc(d.place)}" placeholder="bv. Siem Reap"></div>
     <div class="field"><label for="f-stay-${k}">Verblijf</label><input id="f-stay-${k}" name="stay" value="${esc(d.stay)}" placeholder="Naam hotel of guesthouse"></div>
     <div class="field"><label for="f-addr-${k}">Adres verblijf</label><input id="f-addr-${k}" name="address" value="${esc(d.address)}" placeholder="Adres of Google Maps-link"><small>Klikken op het adres opent de locatie in Google Maps.</small></div>
-    <div class="field"><label for="f-acts-${k}">Activiteiten</label><textarea id="f-acts-${k}" name="activities" placeholder="Eén activiteit per regel">${esc(d.activities)}</textarea><small>Eén activiteit per regel.</small></div>
+    <div class="slotgrid">
+      <div class="field"><label for="f-am-${k}">Voormiddag</label><textarea id="f-am-${k}" name="morning" placeholder="bv. Zonsopgang Angkor Wat">${esc(d.morning)}</textarea></div>
+      <div class="field"><label for="f-pm-${k}">Namiddag</label><textarea id="f-pm-${k}" name="afternoon" placeholder="bv. Ta Prohm">${esc(d.afternoon)}</textarea></div>
+      <div class="field"><label for="f-ev-${k}">Avond</label><textarea id="f-ev-${k}" name="evening" placeholder="bv. Pub Street">${esc(d.evening)}</textarea></div>
+    </div>
+    <div class="field"><label for="f-acts-${k}">Hele dag of nog niet ingedeeld</label><textarea id="f-acts-${k}" name="activities" placeholder="Activiteiten zonder vast moment">${esc(d.activities)}</textarea><small>Eén activiteit per regel, in elk vak.</small></div>
     <div class="field"><label for="f-tr-${k}">Transport</label><input id="f-tr-${k}" name="transport" value="${esc(d.transport)}" placeholder="Alleen als jullie van plek veranderen, bv. Bus Siem Reap → Battambang, 14:00"></div>
     <div class="field"><label for="f-notes-${k}">Notities</label><textarea id="f-notes-${k}" name="notes" placeholder="Tips, vertrekuren, …">${esc(d.notes)}</textarea></div>
     <p class="err" data-err hidden></p>
@@ -475,7 +551,7 @@ $days.addEventListener("submit", async (e) => {
   if (!date) return formErr(f, "Kies een datum.");
   if (key === "new" && days.some(d => d.date === date)) return formErr(f, "Er bestaat al een dag op deze datum. Bewerk die dag in plaats daarvan.");
   const g = n => String(fd.get(n) || "").trim();
-  const day = { date, place: g("place"), stay: g("stay"), address: g("address"), activities: g("activities"), transport: g("transport"), notes: g("notes") };
+  const day = { date, place: g("place"), stay: g("stay"), address: g("address"), activities: g("activities"), morning: g("morning"), afternoon: g("afternoon"), evening: g("evening"), transport: g("transport"), notes: g("notes") };
   const btn = f.querySelector('button[type="submit"]');
   busy = true; btn.disabled = true; btn.textContent = "Opslaan…";
   try { await rpc("save_day", { p_code: code, p_day: day }); editing = null; confirmDel = null; await load(); }
@@ -502,24 +578,42 @@ $("codeForm").addEventListener("submit", async (e) => {
 });
 $("addBtn").addEventListener("click", () => { editing = "new"; render(); $("f-date-new")?.focus(); });
 
+function loadPdfLib() {
+  if (window.html2pdf) return Promise.resolve();
+  return new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js";
+    s.onload = ok; s.onerror = fail; document.head.appendChild(s);
+  });
+}
+
 $("dlBtn").addEventListener("click", async () => {
-  const stamp = new Date().toISOString();
-  const json = JSON.stringify(days.map(({ date, place, stay, address, activities, transport, notes }) =>
-    ({ date, place, stay, address, activities, transport, notes })), null, 2).replace(/</g, "\\u003c");
-  let src;
-  try { src = await (await fetch(location.href, { cache: "no-store" })).text(); }
-  catch { status("Downloaden lukt alleen met internet. Probeer opnieuw zodra je online bent."); return; }
-  const out = src
-    .replace(/const SUPABASE_URL = "[^"]*";/, 'const SUPABASE_URL = "";')
-    .replace(/const SUPABASE_KEY = "[^"]*";/, 'const SUPABASE_KEY = "";')
-    .replace(/const OFFLINE_COPY = "[^"]*";/, 'const OFFLINE_COPY = "' + stamp + '";')
-    .replace(/const FALLBACK = \[[\s\S]*?\n\];/, "const FALLBACK = " + json + ";");
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([out], { type: "text/html" }));
-  a.download = "cambodja-reisplan-offline.html";
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  status("Offline versie gedownload.");
+  const btn = $("dlBtn"); if (btn.disabled) return;
+  btn.disabled = true; btn.textContent = "PDF maken…";
+  const prev = [editMode, editing, document.documentElement.getAttribute("data-theme")];
+  try {
+    await loadPdfLib();
+    editMode = false; editing = null; render();
+    document.documentElement.setAttribute("data-theme", "light");
+    document.body.classList.add("exporting");
+    await window.html2pdf().set({
+      margin: [10, 8, 12, 8],
+      filename: "Cambodja-reisplan.pdf",
+      image: { type: "jpeg", quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#F2F5F1" },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["css", "legacy"], avoid: [".day", "header"] },
+      enableLinks: true
+    }).from(document.querySelector(".wrap")).save();
+    status("PDF gedownload.");
+  } catch {
+    status("De PDF kon niet gemaakt worden. Controleer je internet en probeer opnieuw.");
+  } finally {
+    document.body.classList.remove("exporting");
+    if (prev[2]) document.documentElement.setAttribute("data-theme", prev[2]); else document.documentElement.removeAttribute("data-theme");
+    editMode = prev[0]; editing = prev[1]; render();
+    btn.disabled = false; btn.textContent = "Download als PDF";
+  }
 });
 
 (async () => {

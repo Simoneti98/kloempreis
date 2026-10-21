@@ -79,6 +79,7 @@ button.danger { color: var(--danger); }
 .body { display: grid; gap: 12px; min-width: 0; }
 .head { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; }
 .place { font-family: var(--f-display); font-weight: 400; font-size: 24px; line-height: 1.15; margin: 0; text-wrap: balance; }
+.place-detail { display: block; font-family: var(--f-body); font-size: 14px; font-weight: 500; color: var(--muted); margin-top: 4px; }
 .rows { display: grid; gap: 10px; }
 .row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: start; }
 .label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding-top: 3px; font-weight: 600; }
@@ -110,15 +111,21 @@ textarea { min-height: 76px; resize: vertical; }
   .row { grid-template-columns: 1fr; gap: 2px; }
   .place { font-size: 21px; }
 }
-.slots { display: grid; gap: 8px; }
-.slot { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; align-items: baseline; }
-.slot-t { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; font-weight: 600; color: var(--saffron-ink); white-space: nowrap; }
-.slot-t::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--saffron); flex: none; }
-.slot.allday .slot-t { color: var(--muted); }
-.slot.allday .slot-t::before { background: var(--muted); }
-.slot ul { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 2px; }
+.slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.slot { display: grid; align-content: start; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 12px; min-width: 0; }
+.slot-t { display: flex; gap: 7px; align-items: center; font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.slot-t svg { flex: none; }
+.slot.am .slot-t svg { color: var(--saffron); }
+.slot.pm .slot-t svg { color: var(--saffron-ink); }
+.slot.ev .slot-t svg { color: var(--water); }
+.slot.allday .slot-t svg { color: var(--muted); }
+.slot ul { margin: 0; padding: 0; list-style: none; display: grid; }
+.slot li { font-size: 15px; font-weight: 500; line-height: 1.35; padding-block: 6px; overflow-wrap: anywhere; }
+.slot li + li { border-top: 1px dashed var(--line); }
+.slot li:first-child { padding-top: 0; }
+.slot li:last-child { padding-bottom: 0; }
 .slotgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-@media (max-width: 560px) { .slotgrid { grid-template-columns: 1fr; } .slot { grid-template-columns: 84px minmax(0, 1fr); } }
+@media (max-width: 560px) { .slotgrid { grid-template-columns: 1fr; } }
 body.exporting #dlBtn, body.exporting #modeBtn, body.exporting .banner, body.exporting .adder, body.exporting .ghost, body.exporting .codeform, body.exporting .status { display: none !important; }
 body.exporting .route { overflow: visible; }
 body.exporting .route ol { flex-wrap: wrap; min-width: 0; row-gap: 8px; }
@@ -410,19 +417,49 @@ function addrLabel(a) { return /^https?:\/\//i.test(a) ? "Open in Google Maps" :
 function banner(msg) { const b = $("banner"); b.innerHTML = msg || ""; b.hidden = !msg; }
 function status(msg, live) { const s = $("status"); s.textContent = msg || ""; s.className = "status" + (live ? " live" : ""); }
 
-function renderRoute() {
-  const stops = [];
-  for (const d of days) {
-    const p = (d.place || "").trim() || "Onbekend";
-    const last = stops[stops.length - 1];
-    if (last && last.place === p) last.n++; else stops.push({ place: p, n: 1 });
+/* "Tuk Tuk Tour (wandeling)" → naam "Tuk Tuk Tour" voor de route, detail "wandeling" onder de titel. */
+function splitPlace(place) {
+  const s = String(place || "").trim();
+  const m = s.match(/^(.*?)\s*\(([^()]*)\)\s*$/);
+  return m && m[1] ? { name: m[1].trim(), detail: m[2].trim() } : { name: s, detail: "" };
+}
+function placeHtml(place) {
+  const { name, detail } = splitPlace(place);
+  if (!name) return "Plaats nog in te vullen";
+  return esc(name) + (detail ? `<span class="place-detail">${esc(detail)}</span>` : "");
+}
+
+/* Waar slaap je die nacht? Staat er "A → B" bij transport, dan is dat B; anders de plaats van de dag. */
+function nightPlace(d) {
+  const t = String(d.transport || "");
+  const i = Math.max(t.lastIndexOf("→"), t.lastIndexOf("->"));
+  if (i >= 0) {
+    const dest = t.slice(i + (t[i] === "→" ? 1 : 2)).split(/[,(]/)[0].trim();
+    if (dest) return dest;
   }
-  $("route").innerHTML = stops.map((s, i) =>
-    (i ? '<li><span class="hop" aria-hidden="true"></span></li>' : "") +
-    `<li><div class="stop"><b>${esc(s.place)}</b><span>${s.n} ${s.n === 1 ? "dag" : "dagen"}</span></div></li>`).join("");
+  return splitPlace(d.place).name;
+}
+function shortDate(iso) { const d = parse(iso); return `${d.getDate()} ${MON[d.getMonth()]}`; }
+
+function renderRoute() {
+  // De laatste dag telt niet als nacht: dan reizen jullie naar huis.
+  const nights = days.length > 1 ? days.slice(0, -1) : days;
+  const stops = [];
+  for (const d of nights) {
+    const p = nightPlace(d) || "Onbekend";
+    const last = stops[stops.length - 1];
+    if (last && last.place.toLowerCase() === p.toLowerCase()) { last.n++; last.to = d.date; }
+    else stops.push({ place: p, n: 1, from: d.date, to: d.date });
+  }
+  $("route").innerHTML = stops.map((s, i) => {
+    const when = s.from === s.to ? shortDate(s.from)
+      : (parse(s.from).getMonth() === parse(s.to).getMonth() ? parse(s.from).getDate() : shortDate(s.from)) + "–" + shortDate(s.to);
+    return (i ? '<li><span class="hop" aria-hidden="true"></span></li>' : "") +
+      `<li><div class="stop"><b>${esc(s.place)}</b><span>${when} · ${s.n} ${s.n === 1 ? "nacht" : "nachten"}</span></div></li>`;
+  }).join("");
   if (days.length) {
-    const a = parse(days[0].date), b = parse(days[days.length-1].date);
-    $("sub").textContent = `${a.getDate()} ${MON[a.getMonth()]} – ${b.getDate()} ${MON[b.getMonth()]} · ${days.length} dagen · ${stops.length} stops`;
+    const total = stops.reduce((a, s) => a + s.n, 0);
+    $("sub").textContent = `${shortDate(days[0].date)} – ${shortDate(days[days.length-1].date)} · ${total} ${total === 1 ? "nacht" : "nachten"} · ${stops.length} stops`;
   }
 }
 
@@ -434,12 +471,18 @@ function stayHtml(d) {
   </div>`;
 }
 
-const SLOTS = [["activities", "Hele dag", "allday"], ["morning", "Voormiddag", ""], ["afternoon", "Namiddag", ""], ["evening", "Avond", ""]];
+const ICON = {
+  am: '<path d="M3 18h18"/><path d="M7 18a5 5 0 0 1 10 0"/><path d="M12 6v3"/><path d="M5.6 10.6l1.8 1.8"/><path d="M18.4 10.6l-1.8 1.8"/>',
+  pm: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>',
+  ev: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  allday: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'
+};
+const SLOTS = [["morning", "Voormiddag", "am"], ["afternoon", "Namiddag", "pm"], ["evening", "Avond", "ev"], ["activities", "Hele dag", "allday"]];
 function slotsHtml(d) {
   const filled = SLOTS.map(([k, label, cls]) => ({ label, cls, items: lines(d[k]) })).filter(s => s.items.length);
   if (!filled.length) return '<span class="empty">Nog niets gepland</span>';
   return `<div class="slots">${filled.map(s =>
-    `<div class="slot ${s.cls}"><span class="slot-t">${s.label}</span><ul>${s.items.map(a => `<li>${esc(a)}</li>`).join("")}</ul></div>`).join("")}</div>`;
+    `<div class="slot ${s.cls}"><span class="slot-t"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[s.cls]}</svg>${s.label}</span><ul>${s.items.map(a => `<li>${esc(a)}</li>`).join("")}</ul></div>`).join("")}</div>`;
 }
 
 function viewDay(d, i) {
@@ -454,7 +497,7 @@ function viewDay(d, i) {
     <div class="body">
       ${editing === d.date ? formHtml(d) : `
       <div class="head">
-        <h2 class="place">${esc(d.place || "Plaats nog in te vullen")}</h2>
+        <h2 class="place">${placeHtml(d.place)}</h2>
         ${editMode ? `<button class="ghost" type="button" data-edit="${esc(d.date)}">Bewerken</button>` : ""}
       </div>
       <div class="rows">

@@ -87,7 +87,11 @@ button.danger { color: var(--danger); }
 .val ul { margin: 0; padding-left: 18px; }
 .val li::marker { color: var(--saffron); }
 .empty { color: var(--muted); font-style: italic; }
-.stay { display: inline-block; background: var(--saffron-soft); color: var(--saffron-ink); padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+.stay { display: inline-flex; gap: 6px; align-items: center; background: var(--saffron-soft); color: var(--saffron-ink); padding: 3px 9px; border-radius: 6px; font-weight: 600; text-decoration: none; }
+.stay svg { flex: none; }
+a.stay:hover { text-decoration: underline; }
+a.stay:focus-visible, .addr:focus-visible { outline: 2px solid var(--saffron); outline-offset: 2px; }
+.addr-text { color: var(--muted); font-size: 14px; }
 .transport { display: flex; gap: 10px; align-items: flex-start; background: var(--water-soft); color: var(--ink); border-radius: 8px; padding: 9px 12px; }
 .transport svg { flex: none; color: var(--water); margin-top: 2px; }
 .notes { color: var(--muted); font-size: 14px; white-space: pre-wrap; }
@@ -411,7 +415,9 @@ function lines(t) { return String(t || "").split("\n").map(s => s.trim()).filter
 function mapsUrl(d) {
   const a = (d.address || "").trim();
   if (/^https?:\/\//i.test(a)) return a;
-  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent([d.stay, a].filter(Boolean).join(", "));
+  // Zonder link zoekt Maps altijd binnen Cambodja.
+  const q = [d.stay, a].filter(Boolean).join(", ");
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(/cambod/i.test(q) ? q : q + ", Cambodia");
 }
 function addrLabel(a) { return /^https?:\/\//i.test(a) ? "Open in Google Maps" : a; }
 function banner(msg) { const b = $("banner"); b.innerHTML = msg || ""; b.hidden = !msg; }
@@ -465,9 +471,12 @@ function renderRoute() {
 
 function stayHtml(d) {
   if (!d.stay && !d.address) return '<span class="empty">Nog geen verblijf</span>';
+  const url = esc(mapsUrl(d));
+  const isLink = /^https?:\/\//i.test((d.address || "").trim());
   return `<div class="stayline">
-    ${d.stay ? `<span class="stay">${esc(d.stay)}</span>` : ""}
-    ${d.address ? `<a class="addr" href="${esc(mapsUrl(d))}" target="_blank" rel="noopener">${pin}<span>${esc(addrLabel(d.address))}</span></a>` : ""}
+    ${d.stay ? `<a class="stay" href="${url}" target="_blank" rel="noopener" title="Open in Google Maps">${pin}<span>${esc(d.stay)}</span></a>`
+             : `<a class="addr" href="${url}" target="_blank" rel="noopener">${pin}<span>${esc(addrLabel(d.address))}</span></a>`}
+    ${d.stay && d.address && !isLink ? `<span class="addr-text">${esc(d.address)}</span>` : ""}
   </div>`;
 }
 

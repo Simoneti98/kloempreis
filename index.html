@@ -472,11 +472,9 @@ function renderRoute() {
 function stayHtml(d) {
   if (!d.stay && !d.address) return '<span class="empty">Nog geen verblijf</span>';
   const url = esc(mapsUrl(d));
-  const isLink = /^https?:\/\//i.test((d.address || "").trim());
   return `<div class="stayline">
     ${d.stay ? `<a class="stay" href="${url}" target="_blank" rel="noopener" title="Open in Google Maps">${pin}<span>${esc(d.stay)}</span></a>`
              : `<a class="addr" href="${url}" target="_blank" rel="noopener">${pin}<span>${esc(addrLabel(d.address))}</span></a>`}
-    ${d.stay && d.address && !isLink ? `<span class="addr-text">${esc(d.address)}</span>` : ""}
   </div>`;
 }
 
@@ -524,8 +522,8 @@ function formHtml(d) {
   return `<form class="edit" data-form="${esc(k)}">
     ${isNew ? `<div class="field"><label for="f-date-${k}">Datum</label><input id="f-date-${k}" name="date" type="date" required></div>` : ""}
     <div class="field"><label for="f-place-${k}">Plaats</label><input id="f-place-${k}" name="place" value="${esc(d.place)}" placeholder="bv. Siem Reap"></div>
-    <div class="field"><label for="f-stay-${k}">Verblijf</label><input id="f-stay-${k}" name="stay" value="${esc(d.stay)}" placeholder="Naam hotel of guesthouse"></div>
-    <div class="field"><label for="f-addr-${k}">Adres verblijf</label><input id="f-addr-${k}" name="address" value="${esc(d.address)}" placeholder="Adres of Google Maps-link"><small>Klikken op het adres opent de locatie in Google Maps.</small></div>
+    <div class="field"><label for="f-stay-${k}">Naam van het verblijf</label><input id="f-stay-${k}" name="stay" value="${esc(d.stay)}" placeholder="Naam hotel of guesthouse"></div>
+    <div class="field"><label for="f-addr-${k}">Google Maps-link</label><input id="f-addr-${k}" name="address" value="${esc(d.address)}" placeholder="https://maps.app.goo.gl/…"><small>Klikken op de naam van het verblijf opent deze link. Leeg laten? Dan zoekt Maps de naam op in Cambodja.</small></div>
     <div class="slotgrid">
       <div class="field"><label for="f-am-${k}">Voormiddag</label><textarea id="f-am-${k}" name="morning" placeholder="bv. Zonsopgang Angkor Wat">${esc(d.morning)}</textarea></div>
       <div class="field"><label for="f-pm-${k}">Namiddag</label><textarea id="f-pm-${k}" name="afternoon" placeholder="bv. Ta Prohm">${esc(d.afternoon)}</textarea></div>

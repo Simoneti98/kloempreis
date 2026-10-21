@@ -458,8 +458,9 @@ function renderRoute() {
     else stops.push({ place: p, n: 1, from: d.date, to: d.date });
   }
   $("route").innerHTML = stops.map((s, i) => {
-    const when = s.from === s.to ? shortDate(s.from)
-      : (parse(s.from).getMonth() === parse(s.to).getMonth() ? parse(s.from).getDate() : shortDate(s.from)) + "–" + shortDate(s.to);
+    // Van aankomst tot vertrek, zoals bij een hotelboeking: 3 nachten vanaf 7 nov = 7–10 nov.
+    const a = parse(s.from), b = parse(s.to); b.setDate(b.getDate() + 1);
+    const when = (a.getMonth() === b.getMonth() ? a.getDate() : `${a.getDate()} ${MON[a.getMonth()]}`) + "–" + `${b.getDate()} ${MON[b.getMonth()]}`;
     return (i ? '<li><span class="hop" aria-hidden="true"></span></li>' : "") +
       `<li><div class="stop"><b>${esc(s.place)}</b><span>${when} · ${s.n} ${s.n === 1 ? "nacht" : "nachten"}</span></div></li>`;
   }).join("");

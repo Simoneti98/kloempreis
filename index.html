@@ -79,7 +79,7 @@ button.danger { color: var(--danger); }
 .body { display: grid; gap: 12px; min-width: 0; }
 .head { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; }
 .place { font-family: var(--f-display); font-weight: 400; font-size: 24px; line-height: 1.15; margin: 0; text-wrap: balance; }
-.place-detail { display: block; font-family: var(--f-body); font-size: 14px; font-weight: 500; color: var(--muted); margin-top: 4px; }
+.place-detail { color: var(--muted); }
 .rows { display: grid; gap: 10px; }
 .row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: start; }
 .label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding-top: 3px; font-weight: 600; }
@@ -426,7 +426,7 @@ function splitPlace(place) {
 function placeHtml(place) {
   const { name, detail } = splitPlace(place);
   if (!name) return "Plaats nog in te vullen";
-  return esc(name) + (detail ? `<span class="place-detail">${esc(detail)}</span>` : "");
+  return esc(name) + (detail ? ` <span class="place-detail">(${esc(detail)})</span>` : "");
 }
 
 /* Waar slaap je die nacht? Staat er "A → B" bij transport, dan is dat B; anders de plaats van de dag. */

@@ -139,6 +139,38 @@ body.exporting .wrap { padding-block: 16px; }
   .route { overflow: visible; } .route ol { flex-wrap: wrap; min-width: 0; row-gap: 8px; }
   .day { break-inside: avoid; }
 }
+/* Reisdocumenten */
+.docs { margin-top: 48px; display: grid; gap: 14px; }
+.docs-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.docs-title { font-family: var(--f-display); font-weight: 400; font-size: 28px; margin: 0; }
+.docs-head .ghost { display: inline-flex; gap: 6px; align-items: center; }
+.docs-lock { display: flex; gap: 14px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.docs-lock-icon { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--saffron-soft); color: var(--saffron-ink); }
+.docs-lock-body { display: grid; gap: 10px; min-width: 0; flex: 1; }
+.docs-lock-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.docs-lock-row input { flex: 1 1 180px; max-width: 280px; }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.person { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; align-content: start; gap: 4px; min-width: 0; }
+.person h3 { margin: 0 0 4px; font-family: var(--f-display); font-weight: 400; font-size: 20px; }
+.docrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-block: 8px; flex-wrap: wrap; }
+.docrow + .docrow { border-top: 1px dashed var(--line); }
+.docinfo { display: grid; gap: 2px; min-width: 0; }
+.doclabel { font-weight: 600; font-size: 14px; }
+.docmeta { display: inline-flex; gap: 5px; align-items: center; font-size: 12px; color: var(--water); }
+.docmeta.empty { color: var(--muted); font-style: italic; }
+.docbtns { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.docbtns button { padding: 5px 10px; font-size: 13px; }
+.docs-note { color: var(--muted); font-size: 13px; margin: 0; }
+.viewer { position: fixed; inset: 0; z-index: 50; background: rgba(10, 20, 18, .72); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px)); }
+.viewer-card { background: var(--card); color: var(--ink); border-radius: 14px; width: min(960px, 100%); max-height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+.viewer-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.viewer-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.viewer-body { overflow: auto; padding: 14px; display: grid; place-items: center; }
+.viewer-body img { max-width: 100%; max-height: 75vh; border-radius: 8px; }
+.btnlink { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; font-size: 14px; font-weight: 500; color: var(--ink); text-decoration: none; background: var(--card); }
+.btnlink:hover { border-color: var(--muted); }
+body.exporting .docs, body.exporting .viewer { display: none !important; }
+@media print { .docs, .viewer { display: none !important; } }
 .stayline { display: grid; gap: 4px; justify-items: start; }
 .addr { display: inline-flex; gap: 6px; align-items: flex-start; color: var(--water); font-size: 14px; text-decoration: none; }
 .addr:hover { text-decoration: underline; }
@@ -182,7 +214,10 @@ body.exporting .wrap { padding-block: 16px; }
 
   <section class="days" id="days" aria-live="polite"></section>
   <div class="adder" id="adder" hidden><button class="primary" id="addBtn" type="button">+ Dag toevoegen</button></div>
+
+  <section class="docs" id="docs" aria-live="polite"></section>
 </div>
+<div class="viewer" id="docViewer" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js"></script>
 <script>
@@ -683,6 +718,7 @@ $("dlBtn").addEventListener("click", async () => {
   else { $days.innerHTML = '<div class="notice">Reisplan laden…</div>'; }
   if (!window.supabase || !navigator.onLine) { goOffline(); return; }
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  window.__sb = sb; window.__initDocs?.();
   status("Laden…");
   await load();
   sb.channel("trip_days")
@@ -690,6 +726,229 @@ $("dlBtn").addEventListener("click", async () => {
     .subscribe();
   window.addEventListener("offline", () => goOffline());
   window.addEventListener("online", () => load());
+})();
+</script>
+<script>
+/* ============================================================
+   REISDOCUMENTEN — ID's en rijbewijzen achter een aparte code.
+   De bestanden staan in Supabase; deze pagina bevat ze niet.
+   ============================================================ */
+(() => {
+  const PEOPLE = ["Lander", "Mini", "Jarne", "Sander", "Rudy", "Eti"];
+  const KINDS = [["id", "Identiteitskaart"], ["rijbewijs", "Rijbewijs"]];
+  const DOC_KEY = "cambodja-doccode"; // alleen voor dit tabblad (sessionStorage)
+  const lockIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>';
+  const fileIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
+
+  const box = document.getElementById("docs");
+  let docCode = null, docs = {}, busyKey = null, confirmKey = null, msg = "";
+  try { docCode = sessionStorage.getItem(DOC_KEY); } catch {}
+
+  const k = (p, kind) => p + "/" + kind;
+  const ERR = {
+    wrong_code: "Die code klopt niet.",
+    locked: "Te veel foute pogingen. Probeer het over 15 minuten opnieuw.",
+    too_large: "Dit bestand is te groot. Gebruik een foto of een kleinere PDF (max. ongeveer 5 MB).",
+    bad_type: "Gebruik een foto (JPG, PNG) of een PDF.",
+    not_found: "Dit document bestaat niet meer. Vernieuw de pagina."
+  };
+
+  function fmtSize(n) { return n > 1e6 ? (n / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1e3)) + " KB"; }
+
+  async function call(name, args) {
+    if (!window.__sb) throw { code: "offline" };
+    const { data, error } = await window.__sb.rpc(name, { p_code: docCode, ...args });
+    if (error) throw { code: /fetch|network/i.test(error.message || "") ? "offline" : "server", message: error.message };
+    if (data && data.error) throw { code: data.error };
+    return data;
+  }
+  function errMsg(e) {
+    if (e?.code === "offline") return "Documenten zijn alleen beschikbaar met internet.";
+    return ERR[e?.code] || "Er ging iets mis" + (e?.message ? ": " + e.message : ". Probeer opnieuw.");
+  }
+
+  function renderLocked() {
+    box.innerHTML = `
+      <div class="docs-head"><h2 class="docs-title">Reisdocumenten</h2></div>
+      <form class="docs-lock" id="docsUnlock">
+        <span class="docs-lock-icon">${lockIcon}</span>
+        <div class="docs-lock-body">
+          <label for="docCodeInput"><b>ID's en rijbewijzen</b> zijn afgeschermd met een aparte code.</label>
+          <div class="docs-lock-row">
+            <input id="docCodeInput" type="password" autocomplete="off" placeholder="Documentcode" required>
+            <button class="primary" type="submit">Ontgrendel</button>
+          </div>
+          ${msg ? `<p class="err">${esc(msg)}</p>` : ""}
+        </div>
+      </form>`;
+    document.getElementById("docsUnlock").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector("button");
+      btn.disabled = true; btn.textContent = "Controleren…";
+      docCode = document.getElementById("docCodeInput").value;
+      await refresh(true);
+    });
+  }
+
+  function renderOpen() {
+    const cards = PEOPLE.map(p => `
+      <div class="person">
+        <h3>${esc(p)}</h3>
+        ${KINDS.map(([kind, label]) => {
+          const d = docs[k(p, kind)], key = k(p, kind), busy = busyKey === key;
+          return `<div class="docrow">
+            <div class="docinfo">
+              <span class="doclabel">${label}</span>
+              ${d ? `<span class="docmeta">${fileIcon}${esc(d.mime === "application/pdf" ? "PDF" : "Foto")} · ${fmtSize(d.size)}</span>`
+                  : '<span class="docmeta empty">Nog niet toegevoegd</span>'}
+            </div>
+            <div class="docbtns">
+              ${busy ? '<span class="status">Bezig…</span>' : d ? `
+                <button type="button" data-view="${key}">Bekijk</button>
+                <button type="button" class="ghost" data-up="${key}">Vervang</button>
+                <button type="button" class="ghost danger" data-del="${key}">${confirmKey === key ? "Zeker?" : "Verwijder"}</button>`
+              : `<button type="button" data-up="${key}">Upload</button>`}
+            </div>
+          </div>`;
+        }).join("")}
+      </div>`).join("");
+    box.innerHTML = `
+      <div class="docs-head">
+        <h2 class="docs-title">Reisdocumenten</h2>
+        <button type="button" class="ghost" id="docsLock">${lockIcon}<span>Vergrendel</span></button>
+      </div>
+      ${msg ? `<p class="err">${esc(msg)}</p>` : ""}
+      <div class="people">${cards}</div>
+      <p class="docs-note">Bestanden worden alleen getoond na het ingeven van de code en worden niet in de PDF of op dit toestel bewaard. Vergrendel na gebruik op een gedeeld toestel.</p>
+      <input type="file" id="docFile" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" hidden>`;
+  }
+
+  function render() {
+    if (!window.__sb) { box.innerHTML = '<div class="docs-head"><h2 class="docs-title">Reisdocumenten</h2></div><div class="notice">Documenten zijn alleen beschikbaar met internet.</div>'; return; }
+    if (docCode) renderOpen(); else renderLocked();
+  }
+
+  async function refresh(fromUnlock) {
+    try {
+      const r = await call("docs_list", {});
+      docs = {}; for (const d of r.docs || []) docs[k(d.person, d.kind)] = d;
+      msg = ""; try { sessionStorage.setItem(DOC_KEY, docCode); } catch {}
+    } catch (e) {
+      if (e.code === "wrong_code" || e.code === "locked") { docCode = null; try { sessionStorage.removeItem(DOC_KEY); } catch {} }
+      msg = fromUnlock || e.code !== "wrong_code" ? errMsg(e) : "";
+    }
+    render();
+    if (fromUnlock && !docCode) document.getElementById("docCodeInput")?.focus();
+  }
+
+  function b64ToBlob(b64, mime) {
+    const bin = atob(b64), arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+  function blobToB64(blob) {
+    return new Promise((ok, fail) => {
+      const r = new FileReader();
+      r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = fail; r.readAsDataURL(blob);
+    });
+  }
+  // Foto's worden verkleind (max. 2000 px) zodat ze snel laden en klein blijven.
+  function shrinkImage(file) {
+    return new Promise((ok, fail) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const s = Math.min(1, 2000 / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+        const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(b => b ? ok(b) : fail({ code: "bad_type" }), "image/jpeg", 0.85);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); fail({ code: "bad_type" }); };
+      img.src = url;
+    });
+  }
+
+  let uploadTarget = null;
+  box.addEventListener("click", async (e) => {
+    const t = e.target.closest("button"); if (!t) return;
+    if (t.id === "docsLock") {
+      docCode = null; docs = {}; msg = ""; try { sessionStorage.removeItem(DOC_KEY); } catch {}
+      closeViewer(); render(); return;
+    }
+    if (busyKey) return;
+    if (t.dataset.up) { uploadTarget = t.dataset.up; confirmKey = null; const f = document.getElementById("docFile"); f.value = ""; f.click(); return; }
+    if (t.dataset.del) {
+      const key = t.dataset.del;
+      if (confirmKey !== key) { confirmKey = key; render(); return; }
+      const [person, kind] = key.split("/");
+      busyKey = key; confirmKey = null; render();
+      try { await call("docs_delete", { p_person: person, p_kind: kind }); delete docs[key]; msg = ""; }
+      catch (err) { msg = errMsg(err); }
+      busyKey = null; render(); return;
+    }
+    if (t.dataset.view) {
+      const key = t.dataset.view, [person, kind] = key.split("/");
+      busyKey = key; render();
+      try {
+        const r = await call("docs_get", { p_person: person, p_kind: kind });
+        openViewer(person + " · " + (kind === "id" ? "Identiteitskaart" : "Rijbewijs"), b64ToBlob(r.data, r.mime), r.filename);
+        msg = "";
+      } catch (err) { msg = errMsg(err); }
+      busyKey = null; render();
+    }
+  });
+
+  box.addEventListener("change", async (e) => {
+    if (e.target.id !== "docFile" || !uploadTarget) return;
+    const file = e.target.files[0]; if (!file) return;
+    const key = uploadTarget, [person, kind] = key.split("/");
+    busyKey = key; msg = ""; render();
+    try {
+      let blob = file, mime = file.type;
+      if (mime === "application/pdf") { if (file.size > 5.5e6) throw { code: "too_large" }; }
+      else { blob = await shrinkImage(file); mime = "image/jpeg"; }
+      const data = await blobToB64(blob);
+      await call("docs_put", { p_person: person, p_kind: kind, p_filename: file.name, p_mime: mime, p_data: data });
+      docs[key] = { person, kind, mime, size: blob.size, filename: file.name };
+    } catch (err) { msg = errMsg(err); }
+    busyKey = null; uploadTarget = null; render();
+  });
+
+  // Viewer: toont een foto groot op de pagina; een PDF opent in een nieuw tabblad.
+  const viewer = document.getElementById("docViewer");
+  let viewUrl = null;
+  function openViewer(title, blob, filename) {
+    closeViewer();
+    viewUrl = URL.createObjectURL(blob);
+    const isPdf = blob.type === "application/pdf";
+    viewer.innerHTML = `
+      <div class="viewer-card" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+        <div class="viewer-bar">
+          <b>${esc(title)}</b>
+          <div class="viewer-actions">
+            <a class="btnlink" href="${viewUrl}" download="${esc(filename || "document")}">Download</a>
+            ${isPdf ? `<a class="btnlink" href="${viewUrl}" target="_blank" rel="noopener">Open PDF</a>` : ""}
+            <button type="button" class="primary" id="viewerClose">Sluiten</button>
+          </div>
+        </div>
+        <div class="viewer-body">${isPdf
+          ? '<p class="docs-note">Dit is een PDF. Klik op "Open PDF" om ze te bekijken.</p>'
+          : `<img src="${viewUrl}" alt="${esc(title)}">`}</div>
+      </div>`;
+    viewer.hidden = false;
+    document.getElementById("viewerClose").focus();
+  }
+  function closeViewer() {
+    viewer.hidden = true; viewer.innerHTML = "";
+    if (viewUrl) { setTimeout(((u) => () => URL.revokeObjectURL(u))(viewUrl), 60000); viewUrl = null; }
+  }
+  viewer.addEventListener("click", (e) => { if (e.target === viewer || e.target.id === "viewerClose") closeViewer(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !viewer.hidden) closeViewer(); });
+
+  window.__initDocs = () => { render(); if (docCode) refresh(false); };
+  if (window.__sb) window.__initDocs(); else render();
 })();
 </script>
 </body>
